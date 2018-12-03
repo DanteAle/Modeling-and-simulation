@@ -1,0 +1,87 @@
+//Pregunta 1
+clc, close, clear
+s=%s
+m=0.3
+r=0.5
+J=0.025
+b=0.6
+k=12
+P=0.01
+R=56
+L=2
+kv=5
+kt=5
+
+num=kt
+den= 134.4 + 16.632*s + 1.364*s^2+ 0.04*s^3
+
+G=syslin('c',num,den) 
+
+polos = roots(G.den)
+t = 0:0.01:10
+y = csim('step',t,G)
+figure, plot(t,y)
+xlabel('tiempo(segundos)')
+ylabel('distancia(metros)')
+
+//////////////analicios frecuencial B
+
+[g,fg]=g_margin(G)
+[p,fp]=p_margin(G)
+//figure,show_margins(G)
+figure,plzr(G)
+
+//LAZO CERRADO
+
+LC=G/(1+G)
+[wn, psi]=damp(G)
+wn=wn(1)
+psi=psi(1)
+
+
+//Ganancia estatica
+g=10^(g/20)
+kc=g
+wc=2*%pi*fg// rad/seg
+
+kp=0.6*kc // 259.65
+kd=kp*%pi/(4*wc) //10
+ki=kp*wc/%pi //1685.31
+
+K=kp+kd*s+ki/s//Funcion de trasferencia del controlador
+LA_C=K*G// en lazo abierto
+yin = csim('step',t,LA_C)
+figure,plot(t,yin)
+xlabel("tiempo(s)");ylabel("distancia(m)")
+polos_2 = roots(LA_C.den)
+
+LC_C=LA_C/(1+LA_C)// en lazo cerrado
+
+//con overshoot
+R=ones(1,length(t))
+ylc=csim('step',t,LC_C)// CON overshoot
+
+//sin overshoot
+kp1=kp
+kd1=kd
+ki1=ki*0.05
+
+KO=kp1+kd1*s+ki1/s //FT sin overshoot
+LA_CO=KO*G
+LC_CO=LA_CO/(1+LA_CO)
+
+ylco=csim('step',t,LC_CO)// SIN overshoot
+
+// ENTRADA escalon unitario
+figure, plot( t,ylc,'r',t, ylco,'b',t, R,'g')
+legend('Sistema cont.con overshoot','Sistema cont.sin overshoot','Escalon unitario')
+xlabel("tiempo(s)");ylabel("distancia(m)")
+
+//Entrada escalon 5
+f2 = 5*ones(1,length(t))
+ylco_5 = csim(f2,t,LC_CO)
+
+figure,plot(t,ylco,'b',t,ylco_5,'red'),legend('Entrada escalon unitario','Entrada escalon de 5 unidades'),xlabel("tiempo(s)");ylabel("distancia(m)")
+
+
+polos_3 = roots(LC_CO.den)
